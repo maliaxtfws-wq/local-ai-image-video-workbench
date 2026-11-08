@@ -1,0 +1,47 @@
+{
+  "runtime_root": "runtime",
+  "comfy_url": "http://127.0.0.1:8189",
+  "image_comfy_root": "runtime/legacy/ComfyUI",
+  "image_comfy_python": "runtime/legacy/ComfyUI/.venv/Scripts/python.exe",
+  "image_comfy_url": "http://127.0.0.1:8188",
+  "portrait_cutout_model": "runtime/models/birefnet-general.onnx",
+  "ollama_executable": "runtime/ollama/ollama.exe",
+  "ollama_models": "runtime/ollama/models",
+  "ollama_url": "http://127.0.0.1:11435",
+  "ollama_model": "gemma4:12b",
+  "ollama_default_profile": "stable",
+  "ollama_model_profiles": {
+    "stable": {
+      "label": "Gemma 4 12B · 中文分镜",
+      "model": "gemma4:12b",
+      "manifest_sha256": "6114515d63c17436a7c0417d82820ac65ad643e2806c5a3c89cb62846436ed0b",
+      "system_profile": "stable"
+    },
+    "creative": {
+      "label": "自由创作模式",
+      "model": "huihui_ai/qwen3.5-abliterated:9b",
+      "manifest_sha256": "92a443adb124f5e805bbdee23fdb38fcd22a7bf00a1016b53f764e741369c600",
+      "system_profile": "creative"
+    }
+  },
+  "studio_host": "127.0.0.1",
+  "studio_port": 7860,
+  "batch_import_roots": [
+    "inputs"
+  ],
+  "comfy_args": [
+    "--listen",
+    "127.0.0.1",
+    "--port",
+    "8189",
+    "--disable-auto-launch",
+    "--fast-disk",
+    "--reserve-vram",
+    "1.5",
+    "--cache-none"
+  ],
+  "video_comfy_root": "runtime/video/ComfyUI",
+  "video_comfy_python": "runtime/video/ComfyUI/.venv/Scripts/python.exe",
+  "qwen21_comfy_root": "runtime/qwen21/ComfyUI",
+  "qwen21_comfy_python": "runtime/qwen21/ComfyUI/.venv/Scripts/python.exe"
+}

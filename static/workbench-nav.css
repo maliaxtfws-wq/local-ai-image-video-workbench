@@ -1,0 +1,84 @@
+/* Primary navigation shared by the video and image workbenches. */
+.workbench-hero h1 {
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+
+.workbench-hero .subtitle { line-height: 1.65; }
+
+.studio-navigation {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.studio-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--entry-border);
+  border-radius: 16px;
+  background: var(--entry-background);
+  color: var(--entry-accent);
+  text-decoration: none;
+  transition: background-color 160ms ease-out, border-color 160ms ease-out;
+}
+
+.studio-entry-video {
+  --entry-accent: #82ceff;
+  --entry-text: #d3ebfa;
+  --entry-border: #31516a;
+  --entry-background: #112331;
+  --entry-highlight: #18384e;
+}
+
+.studio-entry-image {
+  --entry-accent: #f3c47c;
+  --entry-text: #f4e3c7;
+  --entry-border: #655236;
+  --entry-background: #2c251b;
+  --entry-highlight: #443523;
+}
+
+.studio-entry[aria-current="page"] {
+  background: var(--entry-highlight);
+  border-color: var(--entry-accent);
+}
+
+a.studio-entry:hover { background: var(--entry-highlight); border-color: var(--entry-accent); }
+a.studio-entry:focus-visible { outline: 3px solid var(--entry-accent); outline-offset: 4px; }
+.studio-entry::selection, .studio-entry *::selection { color: var(--bg); background: var(--entry-accent); }
+
+.studio-entry-icon { width: 40px; height: 40px; flex: 0 0 40px; margin-top: 2px; }
+.studio-entry-content { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
+.studio-entry-title { font-size: 28px; font-weight: 800; line-height: 1.25; }
+.studio-entry-description { color: var(--entry-text); font-size: 14px; line-height: 1.65; }
+.studio-entry-action { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 4px; font-size: 13px; font-weight: 700; line-height: 1.5; }
+.studio-entry-action small { color: var(--entry-text); font-size: 12px; font-weight: 400; }
+.studio-entry-action svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.workspace-tabs { display: flex; flex-wrap: wrap; width: fit-content; max-width: 100%; }
+.workspace-tabs .tab-button { padding-inline: 16px; }
+.workspace-tool-note { color: var(--muted); font-size: 14px; line-height: 1.7; margin: 0 0 20px; }
+.workspace-tool-note a { color: #f3c47c; text-underline-offset: 3px; }
+
+@media (max-width: 760px) {
+  .studio-entry { padding: 20px; gap: 12px; }
+  .studio-entry-icon { width: 32px; height: 32px; flex-basis: 32px; }
+  .studio-entry-title { font-size: 24px; }
+}
+
+@media (max-width: 600px) {
+  .studio-navigation { grid-template-columns: 1fr; gap: 12px; margin-bottom: 24px; }
+  .studio-entry { padding: 16px 20px; }
+  .studio-entry-content { gap: 4px; }
+  .studio-entry-action { margin-top: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-entry { transition: none; }
+}

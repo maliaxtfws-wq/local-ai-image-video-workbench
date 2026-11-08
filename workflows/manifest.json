@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "engine": "ComfyUI v0.34.0",
+  "duration": {
+    "frames": 124,
+    "fps": 24,
+    "seconds": 5.1667
+  },
+  "templates": {
+    "text": "t2v.api.json",
+    "image": "i2v.api.json",
+    "continue": "continue.api.json",
+    "continue_dual": "continue.api.json"
+  },
+  "bindings": {
+    "prompt": ["5", "prompt"],
+    "seed": ["6", "noise_seed"],
+    "steps": ["8", "steps"],
+    "canvas": ["5", "width", "height"],
+    "image": ["15", "image"],
+    "image_scale": ["16", "width", "height"],
+    "continuation_video": ["18", "file"],
+    "continuation_guide": ["20", "frame_idx"]
+  },
+  "presets": {
+    "draft": {
+      "label": "快速草稿（Turbo 8 步）",
+      "steps": 8,
+      "turbo": true,
+      "landscape": [608, 352],
+      "portrait": [352, 608],
+      "square": [448, 448]
+    },
+    "draft_clipproj": {
+      "label": "快速草稿（ClipProj 实验 / Turbo 8 步）",
+      "encoder": "clipproj_4b",
+      "steps": 8,
+      "turbo": true,
+      "landscape": [608, 352],
+      "portrait": [352, 608],
+      "square": [448, 448]
+    },
+    "standard_clipproj": {
+      "label": "标准预览（ClipProj 实验 / 20 步）",
+      "encoder": "clipproj_4b",
+      "steps": 20,
+      "turbo": false,
+      "landscape": [864, 480],
+      "portrait": [480, 864],
+      "square": [640, 640]
+    },
+    "standard": {
+      "label": "标准预览",
+      "steps": 20,
+      "turbo": false,
+      "landscape": [864, 480],
+      "portrait": [480, 864],
+      "square": [640, 640]
+    },
+    "native": {
+      "label": "高清实验（较慢）",
+      "steps": 20,
+      "turbo": false,
+      "landscape": [1344, 768],
+      "portrait": [768, 1344],
+      "square": [992, 992]
+    }
+  },
+  "workflows": [
+    "横屏文生视频",
+    "横屏图生视频",
+    "竖屏文生视频",
+    "竖屏图生视频",
+    "方形文生视频",
+    "方形图生视频",
+    "横屏接着生成",
+    "竖屏接着生成",
+    "方形接着生成"
+  ]
+}

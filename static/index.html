@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>视频生成 · 本地 AI 工作台</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/style.css?v=20261024-sequence-settings-v1">
+  <link rel="stylesheet" href="/static/workbench-nav.css?v=20261101-entry-v1">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero workbench-hero">
+      <div>
+        <h1>本地 AI 视频工作台</h1>
+        <p class="subtitle">把文字或图片制作成视频，也可以按剧本连续生成。</p>
+      </div>
+      <div id="engineBadge" class="badge checking"><span></span>正在检查引擎</div>
+    </header>
+
+    <nav class="studio-navigation" aria-label="图片与视频工作台">
+      <div class="studio-entry studio-entry-video" aria-current="page">
+        <svg class="studio-entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3Z"/></svg>
+        <span class="studio-entry-content">
+          <strong class="studio-entry-title">视频生成</strong>
+          <span class="studio-entry-description">文生视频 · 图生视频 · 剧本续接</span>
+          <span class="studio-entry-action"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 8 3 3 7-7"/></svg>当前页面</span>
+        </span>
+      </div>
+      <a id="storyboardLink" class="studio-entry studio-entry-image" href="/storyboards" target="_blank" rel="noopener" aria-label="打开图片生成工作台（新标签页）">
+        <svg class="studio-entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 4-6 5 7"/></svg>
+        <span class="studio-entry-content">
+          <strong class="studio-entry-title">图片生成</strong>
+          <span class="studio-entry-description">固定主角 · 姿势参考 · 批量生图</span>
+          <span class="studio-entry-action">打开图片工作台 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg><small>新标签页</small></span>
+        </span>
+      </a>
+    </nav>
+
+    <section class="panel prompt-panel">
+      <div class="section-title-row">
+        <div><p class="eyebrow">PROMPT</p><h2>先说你想看到什么</h2></div>
+        <div class="optimizer-actions">
+          <label class="model-profile-picker" for="promptModelProfile"><span>提示词模式</span><select id="promptModelProfile" aria-describedby="promptModelHint"><option value="stable">稳定模式</option><option value="creative">自由创作模式</option></select></label>
+          <button id="optimizeButton" class="secondary compact-button" type="button">用本地 AI 优化</button>
+        </div>
+      </div>
+      <p id="promptModelHint" class="model-profile-hint">稳定模式：中文与结构化输出更可靠。</p>
+      <label class="field-label" for="prompt">画面或下一步动作</label>
+      <textarea id="prompt" rows="6" maxlength="5000" placeholder="例如：雨夜车站，她听到身后有人叫她，停下脚步后慢慢回头。镜头从中景缓慢推进到近景，红围巾被风吹动。"></textarea>
+      <div class="hint-row"><span>普通中文就可以，本地 Qwen 会整理成图片、视频和续接提示词</span><span id="promptCount">0 / 5000</span></div>
+
+      <details class="character-lock-box" open>
+        <summary>人物固定描述 <em>建议确认角色后保持不变</em></summary>
+        <textarea id="characterLock" rows="3" maxlength="2000" placeholder="例如：25岁亚洲女性，黑色齐耳短发，右眼下方一颗小痣，红色羊毛围巾，深灰色长风衣。"></textarea>
+        <p class="microcopy">这里是人物身份证。后续换动作、镜头和场景时不要重写它。</p>
+      </details>
+
+      <div id="optimizerStatus" class="inline-status hidden" role="status" aria-live="polite"></div>
+      <div id="optimizerResult" class="optimizer-result hidden">
+        <div class="result-header compact-header">
+          <div><strong>本地 AI 已整理</strong><span>先看一眼，再决定用哪一条</span></div>
+          <button id="applyCharacterLock" class="text-button" type="button">采用人物固定描述</button>
+        </div>
+        <div class="prompt-cards">
+          <article><label>角色图片提示词</label><p id="optimizedImagePrompt"></p><button data-apply-prompt="image" class="text-button" type="button">用于角色图片</button></article>
+          <article><label>首段视频提示词</label><p id="optimizedVideoPrompt"></p><button data-apply-prompt="video" class="text-button" type="button">用于生成视频</button></article>
+          <article><label>下一段续接提示词</label><p id="optimizedContinuationPrompt"></p><button data-apply-prompt="continuation" class="text-button" type="button">用于接着生成</button></article>
+        </div>
+        <details class="negative-box"><summary>负面提示词与提醒</summary><p id="optimizedNegativePrompt"></p><ul id="optimizerWarnings"></ul></details>
+      </div>
+    </section>
+
+    <nav class="workspace-tabs" role="tablist" aria-label="视频工作台工具">
+      <button id="videoTab" class="tab-button active" type="button" role="tab" aria-selected="true" aria-controls="videoWorkspace" data-workspace="video">视频生成设置</button>
+      <button id="imageTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="imageWorkspace" data-workspace="image">角色母版工具</button>
+    </nav>
+
+    <section id="videoWorkspace" class="workspace" role="tabpanel" aria-labelledby="videoTab">
+      <section class="panel form-panel">
+        <div class="upload-grid">
+          <div>
+            <label class="field-label">视频首帧 / 角色参考图 <em>可选</em></label>
+            <label id="dropZone" class="drop-zone" for="videoImage">
+              <input id="videoImage" type="file" accept="image/png,image/jpeg,image/webp">
+              <img id="imagePreview" alt="视频参考图片预览">
+              <div id="uploadCopy"><strong>拖入图片或点击上传</strong><span>有图就是图生视频；不上传就是文生视频</span></div>
+            </label>
+            <button id="clearImage" class="text-button hidden" type="button">移除图片</button>
+            <p class="microcopy">照片超过 25MB 或 4000 万像素时，生成前会自动压缩；不裁剪、不拉伸，原图不变。单张支持最多 200MB、2 亿像素。</p>
+          </div>
+          <div class="choices">
+            <label class="field-label" for="videoQuality">生成质量</label>
+            <select id="videoQuality">
+              <option value="draft">快速草稿 · Turbo 8 步 · 推荐首次使用</option>
+              <option value="standard">标准预览 · 更清晰</option>
+              <option value="native">高清实验 · 明显更慢</option>
+              <option value="draft_clipproj">快速草稿 · ClipProj 4B 实验 · Turbo 8 步</option>
+              <option value="standard_clipproj">标准预览 · ClipProj 4B 实验 · 20 步</option>
+            </select>
+            <p class="microcopy">原有前三档使用 32B 编码器。ClipProj 两档使用更小的 4B 编码器，便于对比速度与画质；接着生成会沿用上一段档位。</p>
+            <label class="field-label" for="videoAspect">画面方向</label>
+            <select id="videoAspect">
+              <option value="auto">自动 · 跟随图片，无图则横屏</option>
+              <option value="landscape">横屏 16:9</option>
+              <option value="portrait">竖屏 9:16</option>
+              <option value="square">方形 1:1</option>
+            </select>
+            <details>
+              <summary>高级选项</summary>
+              <label class="field-label compact" for="videoSeed">随机种子 <em>留空则每次随机</em></label>
+              <input id="videoSeed" type="number" min="0" max="9223372036854775807" placeholder="自动随机">
+            </details>
+          </div>
+        </div>
+        <details class="batch-box" id="continuationImportPanel">
+          <summary>从已保存的视频继续 · 可恢复中断前的成片</summary>
+          <div class="batch-body">
+            <label id="continuationDropZone" class="continuation-drop" for="continuationFile">
+              <strong>拖入上一段视频，或点击选择</strong>
+              <span>MP4 / MOV / MKV / WebM，最多 512MB</span>
+              <input id="continuationFile" type="file" accept="video/mp4,video/quicktime,video/webm,video/x-matroska,.mp4,.mov,.mkv,.webm">
+            </label>
+            <p class="microcopy">按当前质量档位匹配画幅并转换为 24fps，保留末尾 22 帧和同期声音。原视频不会被改动。导入后填写下一镜头提示词即可继续。</p>
+            <p id="continuationImportStatus" role="status" aria-live="polite">尚未导入参考视频。</p>
+            <video id="continuationPreview" class="reference-video hidden" controls preload="metadata"></video>
+            <button id="clearContinuation" class="text-button hidden" type="button">移除导入的视频参考</button>
+          </div>
+        </details>
+        <details id="batchPanel" class="batch-box">
+          <summary>文件夹批量生成 · 每张图片一段约 5 秒视频</summary>
+          <div class="batch-body">
+            <label class="field-label" for="batchFolderPath">推荐：直接读取本机文件夹</label>
+            <div class="batch-path-row">
+              <input id="batchFolderPath" type="text" placeholder="请输入已配置的素材文件夹绝对路径" autocomplete="off" spellcheck="false" aria-describedby="batchPathHint">
+              <button id="scanBatchFolderButton" class="secondary" type="button">读取这个文件夹</button>
+            </div>
+            <p id="batchPathHint" class="microcopy">超过 25MB 或 4000 万像素的照片会自动生成兼容副本：等比缩小或降低编码质量，保留完整画面和原图。单张原始照片支持最多 200MB、2 亿像素。</p>
+            <details class="batch-browser-fallback">
+              <summary>备用：手动多选图片</summary>
+              <label class="field-label compact" for="batchFolder">选择多张参考图</label>
+              <input id="batchFolder" class="batch-file-input" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" multiple>
+              <p class="microcopy">进入图片目录后按 Ctrl+A 全选。这个入口不读取子文件夹；内置浏览器不兼容目录选择时仍可使用。</p>
+            </details>
+            <p id="batchSelectionStatus" class="microcopy" role="status" aria-live="polite">尚未读取文件夹。只读取 PNG、JPEG 和 WebP，并按相对文件名自然排序。</p>
+            <label class="toggle-row batch-confirm" for="batchCompliance">
+              <input id="batchCompliance" type="checkbox">
+              <span><strong>确认素材和提示词可合法使用</strong><small>我拥有参考图的使用权；批量任务不用于未成年人、非自愿亲密内容，或对真实人物进行露骨性改造。</small></span>
+            </label>
+            <div class="batch-actions">
+              <button id="startBatchButton" class="secondary" type="button" disabled>开始批量生成</button>
+              <button id="pauseBatchButton" class="secondary hidden" type="button" aria-pressed="false">暂停批次</button>
+              <button id="stopBatchButton" class="secondary hidden" type="button">停止本批次</button>
+              <span class="local-note">开始时会固定当前提示词、人物描述、质量、画幅和 Seed。</span>
+            </div>
+            <p class="microcopy">暂停会等待当前视频完成，再停在下一张之前；继续时保留队列与生成设置。暂停期间请保持本页面打开。</p>
+            <div id="batchProgressWrap" class="batch-progress hidden">
+              <label for="batchProgress">批次总进度</label>
+              <progress id="batchProgress" max="1" value="0"></progress>
+              <p id="batchStatus" role="status" aria-live="polite"></p>
+            </div>
+            <ol id="batchQueue" class="batch-queue hidden" aria-label="批量生成队列"></ol>
+            <p class="microcopy batch-note">本机严格一段一段处理，一次最多 200 张；批量只是自动排队，不是并行加速。新视频直接集中在同一个总输出文件夹，以参考图名和唯一任务号命名，不再为每段创建子文件夹。需要保持本页面打开，刷新或关闭会丢失尚未生成的队列，已经完成的视频仍会保留。</p>
+          </div>
+        </details>
+        <div class="action-row">
+          <button id="generateButton" class="primary" type="button" disabled>生成约 5 秒视频</button>
+          <button id="continueButton" class="secondary hidden" type="button" disabled>接着上一段生成</button>
+          <button id="cancelButton" class="secondary hidden" type="button">停止生成</button>
+          <span class="local-note">H3 · 124 帧 · 24fps</span>
+        </div>
+        <p id="continueHint" class="continuation-hint hidden">把上面的文字改成下一步动作，再点“接着上一段生成”。工作台会带上末尾 22 帧和声音；新片开头约 0.9 秒是重叠衔接区。</p>
+      </section>
+
+      <section class="panel sequence-panel" aria-labelledby="sequenceHeading">
+        <p class="eyebrow">SCRIPT TO VIDEO · LOCAL</p>
+        <h2 id="sequenceHeading">剧本连续生成</h2>
+        <p class="microcopy">完整剧本 → 本地模型拆成约 5 秒镜头 → 查看或修改提示词 → 顺序生成并自动续接上一段。</p>
+        <div class="sequence-settings">
+          <div><label for="sequenceQuality">本剧本生成质量 / 编码器</label><select id="sequenceQuality"></select></div>
+          <div><label for="sequenceSteps">采样步数（不是文字模型思考步数）</label><select id="sequenceSteps"><option value="8">8 步 · Turbo 专用</option><option value="12">12 步</option><option value="20">20 步</option><option value="30">30 步</option><option value="40">40 步</option></select></div>
+          <div><label for="sequenceAspect">本剧本画幅</label><select id="sequenceAspect"><option value="auto">自动 · 跟随首图方向</option><option value="portrait">竖屏</option><option value="landscape">横屏</option><option value="square">方形</option></select></div>
+          <div><label for="sequenceImageFit">首图适配</label><select id="sequenceImageFit"><option value="contain">完整放入 · 不裁脸（比例不同时留黑边）</option><option value="crop">居中裁切 · 铺满画面（可能裁掉头脸）</option></select></div>
+          <div><label for="sequenceContinuationStrategy">后续镜头参考方案</label><select id="sequenceContinuationStrategy"><option value="previous">原方案 · 上一段末尾续接</option><option value="dual_reference">双参考实验 · 原始角色图＋上一段视频</option></select><p class="microcopy">双参考每段都读取固定首图，使用独立 R2V 模型，需原版标准/高清档、至少 20 步。不增加人物检查或确认暂停；发生引擎错误仍停止，避免重复提交。</p></div>
+          <div><label for="sequenceTargetShots">目标镜头数 · 0 为自动，最多 1000</label><input id="sequenceTargetShots" type="number" min="0" max="1000" step="1" value="12"><p class="microcopy">可填 12、24、48 等；分批拆镜，不是只拆 6 个。越多越耗时，长片人物也可能逐渐漂移。</p></div>
+        </div>
+        <p id="sequenceSettingsHint" class="microcopy" role="status">新方案默认跟随首图方向、完整放入。后续镜头沿用第一镜头尺寸与步数。</p>
+        <div class="sequence-actions">
+          <button id="saveSequenceSettings" class="secondary" type="button" disabled>保存本剧本设置</button>
+          <button id="copySequenceSettings" class="secondary" type="button" disabled>按当前设置复制镜头表</button>
+          <button id="replanSequence" class="secondary" type="button" disabled>按新数量重新拆镜（另存方案）</button>
+        </div>
+        <div class="sequence-library">
+          <label for="sequenceLibrary">已保存的镜头表</label>
+          <select id="sequenceLibrary"><option value="">选择本机镜头表</option></select>
+          <button id="newSequenceButton" class="text-button" type="button">新建剧本</button>
+        </div>
+        <label class="field-label" for="scriptTitle">剧本名称</label>
+        <input id="scriptTitle" maxlength="100" value="剧本连续生成">
+        <label class="field-label" for="scriptText">完整剧本</label>
+        <textarea id="scriptText" rows="8" maxlength="100000" placeholder="粘贴完整剧本，包括场景、人物动作和对白。长剧本会分批送入本地模型，不会只截取开头。"></textarea>
+        <div class="sequence-actions">
+          <label class="text-file-label" for="scriptFile">导入 TXT / Markdown<input id="scriptFile" type="file" accept=".txt,.md,text/plain,text/markdown"></label>
+          <button id="planScriptButton" class="secondary" type="button">用本地模型拆成 5 秒镜头</button>
+        </div>
+        <p class="microcopy">使用本区域的质量、步数、画幅和目标镜头数；人物描述与文字模型仍取上方选择。拆镜不自动生成视频，旧镜头表和成片不会被覆盖。</p>
+        <p id="sequenceStatus" role="status" aria-live="polite">镜头表与生成进度保存在本机，刷新网页后仍可恢复。</p>
+        <div class="sequence-first-frame">
+          <label class="field-label" for="sequenceFirstImage">剧本首帧 / 固定角色参考图 <em>原方案可选；双参考方案必需</em></label>
+          <input id="sequenceFirstImage" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp">
+          <img id="sequenceFirstPreview" class="hidden" alt="剧本首帧参考图预览">
+          <p class="microcopy">实际首帧取景预览（保存首图后显示，随本区域设置更新）：</p>
+          <img id="sequenceFramingPreview" class="hidden" alt="实际送入模型的首帧构图">
+          <p id="sequenceFirstStatus" class="microcopy" role="status">可先选择参考图，再拆分剧本。大图会自动压缩，不裁剪、不修改原图。</p>
+          <div class="sequence-actions">
+            <button id="saveSequenceFirstImage" class="secondary" type="button" disabled>保存首帧到镜头表</button>
+            <button id="clearSequenceFirstImage" class="text-button" type="button" disabled>移除首帧</button>
+          </div>
+          <p class="microcopy">保存后随本份镜头表保留，刷新后可查看。未手动保存时，开始连续生成会自动保存所选图片。原方案仅将此图用于首段；双参考方案还会在每次续接时读取此图。已有镜头开始生成后不能更换首图。</p>
+        </div>
+        <p id="sequenceOutputFolder" class="microcopy sequence-batch-path"></p>
+        <div class="batch-box">
+          <strong>本首图 · 去重完整视频</strong>
+          <p class="microcopy">首段完整保留，后续每段去掉开头 22 帧续接区（约 0.92 秒），音画同步拼接。完整视频与原分段保存在同一文件夹。</p>
+          <p id="sequenceMergeStatus" role="status" aria-live="polite">全部镜头完成后自动合并。</p>
+          <div class="sequence-actions">
+            <button id="mergeSequenceVideo" class="secondary" type="button" disabled>合并完整视频（保留分段）</button>
+            <a id="sequenceMergedDownload" class="hidden" download>下载完整视频</a>
+          </div>
+          <video id="sequenceMergedPreview" class="hidden" controls preload="metadata" style="width:100%;max-height:440px"></video>
+        </div>
+        <div class="sequence-actions">
+          <button id="collectSequenceOutputs" class="secondary" type="button" disabled>归集已有成片（保留原文件）</button>
+          <button id="openSequenceFolder" class="secondary" type="button" disabled>打开这张首图的影片文件夹</button>
+        </div>
+        <details id="sequenceBatchPanel" class="batch-box sequence-batch-panel" open>
+          <summary>批量首图 · 同一剧本，每张图生成一套连续视频</summary>
+          <div class="batch-body">
+            <p class="microcopy">先完成并确认上面的剧本镜头表。每张首图都使用同一份镜头提示词，从第一镜头独立开始；该图的后续镜头只续接自己的上一段。</p>
+            <label class="field-label" for="sequenceBatchFolder">首图文件夹路径</label>
+            <div class="batch-path-row">
+              <input id="sequenceBatchFolder" type="text" placeholder="请输入已配置的素材文件夹绝对路径" autocomplete="off" spellcheck="false">
+              <button id="scanSequenceBatchFolder" class="secondary" type="button">读取首图文件夹</button>
+            </div>
+            <p class="microcopy">沿用工作台允许的本机素材目录（见配置项 batch_import_roots），按文件名自然排序，包含子文件夹。每批最多 200 张、合计最多 10000 个镜头。</p>
+            <details><summary>备用：选择文件夹或多张图片</summary>
+              <label class="field-label" for="sequenceBatchDirectory">选择整个图片文件夹</label>
+              <input id="sequenceBatchDirectory" type="file" accept="image/png,image/jpeg,image/webp" webkitdirectory multiple>
+              <label class="field-label" for="sequenceBatchFiles">浏览器不支持目录选择时，可多选图片</label>
+              <input id="sequenceBatchFiles" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" multiple>
+            </details>
+            <p id="sequenceBatchSelection" class="microcopy" role="status">尚未读取首图。导入只保存图片和镜头表，不会自动生成视频。</p>
+            <label class="toggle-row batch-confirm" for="sequenceBatchCompliance"><input id="sequenceBatchCompliance" type="checkbox">
+              <span><strong>确认素材和提示词可合法使用</strong><small>拥有素材使用权；不用于未成年人、非自愿亲密内容或对真实人物进行露骨性改造。</small></span>
+            </label>
+            <button id="importSequenceBatch" class="secondary" type="button" disabled>导入为首图批次（暂不生成）</button>
+            <div class="sequence-library"><label for="sequenceBatchLibrary">本剧本的首图批次</label>
+              <select id="sequenceBatchLibrary"><option value="">尚无首图批次</option></select>
+            </div>
+            <div class="sequence-actions">
+              <button id="startSequenceBatch" class="primary" type="button" disabled>开始批量连续生成</button>
+              <button id="pauseSequenceBatch" class="secondary hidden" type="button">完成当前镜头后暂停本批次</button>
+              <button id="openSequenceBatchFolder" class="text-button" type="button" disabled>打开本批次输出文件夹</button>
+            </div>
+            <p id="sequenceBatchStatus" role="status" aria-live="polite">请先选择或拆分一份剧本，再导入首图。</p>
+            <progress id="sequenceBatchProgress" class="hidden" max="1" value="0"></progress>
+            <p id="sequenceBatchOutput" class="microcopy sequence-batch-path"></p>
+            <ol id="sequenceBatchQueue" class="sequence-batch-queue" aria-label="首图分组与视频结果"></ol>
+            <p class="microcopy">按“剧本批次 → 首图编号与名称 → 各镜头视频”建文件夹；每张首图完成后自动去重拼接完整视频，原分段、首图和镜头表保留。后台串行，刷新或关闭网页仍可运行；暂停等当前镜头完成，恢复跳过已完成镜头。生成失败会停止批次；合并失败可单独重试，不重新生成。</p>
+          </div>
+        </details>
+        <div id="sequenceError" class="sequence-error hidden" role="alert"></div>
+        <div id="sequenceActions" class="sequence-actions hidden">
+          <button id="saveShotsButton" class="secondary" type="button">保存提示词修改</button>
+          <button id="startSequenceButton" class="primary" type="button">开始连续生成</button>
+          <button id="pauseSequenceButton" class="secondary hidden" type="button">完成当前镜头后暂停</button>
+          <button id="reloadSequenceButton" class="text-button" type="button">重新加载已保存进度</button>
+        </div>
+        <p id="sequenceStartHint" class="microcopy hidden">优先使用本剧本的首帧参考图；未设置时沿用上方参考图或已导入的视频。后续自动采用上一镜头成片。每段约 5.17 秒，其中续接段约 0.92 秒为重叠区，实际新增约 4.25 秒。</p>
+        <ol id="shotList" class="shot-list" aria-label="剧本镜头列表"></ol>
+        <p class="microcopy">连续队列由本机后台运行，关闭或刷新网页仍会继续。电脑需保持开机且不休眠；退出工作台会停止当前生成。全部镜头完成后自动去重合并，原分段保留。重启后不自动重发任务；合并中断时可单独重试。</p>
+      </section>
+
+      <section class="panel result-panel">
+        <div class="result-header">
+          <div><p class="eyebrow">VIDEO RESULT</p><h2>视频结果</h2></div>
+          <button class="text-button open-results" type="button">打开统一输出文件夹</button>
+        </div>
+        <div id="emptyResult" class="empty-result"><div class="film-icon">▶</div><strong>生成的视频会显示在这里</strong><span>首次加载模型会比后续更久。</span></div>
+        <div id="jobStatus" class="job-status hidden">
+          <div class="status-line"><strong id="statusText">准备中</strong><span id="statusMeta"></span></div>
+          <div class="progress-track"><div id="progressBar"></div></div>
+          <p id="statusDetail"></p>
+        </div>
+        <div id="videoResult" class="video-result hidden">
+          <video id="videoPlayer" controls playsinline></video>
+          <div class="video-meta"><span id="videoInfo"></span><a id="downloadLink" download>下载视频</a></div>
+        </div>
+        <div id="videoErrorBox" class="error-box hidden" role="alert"></div>
+      </section>
+    </section>
+
+    <section id="imageWorkspace" class="workspace hidden" role="tabpanel" aria-labelledby="imageTab">
+      <p class="workspace-tool-note">这里用于准备角色母版。固定主角、姿势参考和批量分镜，请前往 <a href="/storyboards" target="_blank" rel="noopener">图片生成工作台（新标签页）</a>。</p>
+      <section class="panel form-panel">
+        <div class="image-options">
+          <div><label class="field-label" for="imageMode">你现在要做什么？</label><select id="imageMode"><option value="create">创建角色母版（文字或参考图）</option><option value="edit">固定已有人物，换姿势 / 镜头 / 表情</option></select></div>
+          <div><label class="field-label" for="imageAspect">图片方向</label><select id="imageAspect" aria-describedby="imageAspectHint"><option value="portrait">竖图 · 角色全身/半身</option><option value="landscape">横图 · 场景构图</option><option value="square">方图 · 头像/表情</option></select><p id="imageAspectHint" class="microcopy hidden">上传参考图后，画幅会按第 1 张图的比例匹配模型支持的尺寸。</p></div>
+          <div><label class="field-label" for="imageEngine">图片引擎</label><select id="imageEngine"><option value="qwen21">Qwen-Image 2.1 · 新版 INT8</option><option value="legacy">原有 2511 / 2512 · 保留方案</option></select><label class="field-label compact" for="imageQuality">图片质量</label><select id="imageQuality"><option value="draft">预览 · 新版 25 步 / 原版 12 步</option><option value="standard">精细 · 新版 40 步 / 原版 20 步</option></select></div>
+        </div>
+        <div id="referenceArea" class="reference-area">
+          <p id="referenceIntro" class="reference-intro"><strong>参考图可选。</strong>不上传就按文字创建；上传后，第 1 张决定主要人物，最终生成结果才是新的角色母版候选。</p>
+          <p class="microcopy">参考图过大时会在生成前自动压缩，保留完整画面和原图。单张支持最多 200MB、2 亿像素。</p>
+          <div id="referenceGrid" class="reference-grid primary-only">
+            <div id="referenceSlotWrap1" class="reference-slot-wrap"><label class="reference-slot" for="reference1"><input id="reference1" type="file" accept="image/png,image/jpeg,image/webp"><img id="referencePreview1" alt="主要人物参考"><span id="referenceLabel1">1 · 主要人物参考（可选）</span></label><button id="clearReference1" class="text-button reference-clear hidden" type="button">移除主要参考及补充图</button></div>
+            <div id="referenceSlotWrap2" class="reference-slot-wrap hidden"><label class="reference-slot" for="reference2"><input id="reference2" type="file" accept="image/png,image/jpeg,image/webp"><img id="referencePreview2" alt="姿态角色参考"><span id="referenceLabel2">2 · 侧面 / 全身 / 姿态（可选）</span></label><button id="clearReference2" class="text-button reference-clear hidden" type="button">移除第 2 张</button></div>
+            <div id="referenceSlotWrap3" class="reference-slot-wrap hidden"><label class="reference-slot" for="reference3"><input id="reference3" type="file" accept="image/png,image/jpeg,image/webp"><img id="referencePreview3" alt="细节角色参考"><span id="referenceLabel3">3 · 服装 / 风格 / 细节（可选）</span></label><button id="clearReference3" class="text-button reference-clear hidden" type="button">移除第 3 张</button></div>
+          </div>
+          <div class="reference-tools">
+            <label id="referenceCutoutRow" class="toggle-row hidden" for="referenceCutout"><input id="referenceCutout" type="checkbox"><span><strong>生成前先抠出人物</strong><small>可选；用本机 BiRefNet 逐张处理已选参考图，原图不会被修改。适合单人图。</small></span></label>
+            <p id="referenceSummary" class="microcopy" role="status" aria-live="polite">未上传参考图，将按文字创建母版</p>
+          </div>
+        </div>
+        <details id="imageBatchPanel" class="batch-box">
+          <summary>批量导入参考图并生成 · 每张参考图一张结果</summary>
+          <div class="batch-body">
+            <label class="field-label" for="imageBatchFolderPath">推荐：直接读取本机图片文件夹</label>
+            <div class="batch-path-row">
+              <input id="imageBatchFolderPath" type="text" placeholder="请输入已配置的素材文件夹绝对路径" autocomplete="off" spellcheck="false" aria-describedby="imageBatchPathHint">
+              <button id="scanImageBatchFolderButton" class="secondary" type="button">读取文件夹</button>
+            </div>
+            <p id="imageBatchPathHint" class="microcopy">每张图片会依次作为第 1 张主要参考图；超过 25MB 或 4000 万像素时自动生成兼容副本，完整画面和原图保持不变。</p>
+            <details class="batch-browser-fallback">
+              <summary>浏览器选择备用方式</summary>
+              <label class="field-label compact" for="imageBatchFolder">选择多张参考图</label>
+              <input id="imageBatchFolder" class="batch-file-input" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" multiple>
+            </details>
+            <label id="imageBatchCutoutRow" class="toggle-row batch-confirm" for="imageBatchCutout">
+              <input id="imageBatchCutout" type="checkbox">
+              <span><strong>批量生成前逐张抠出人物</strong><small>可选；使用本机 BiRefNet 处理临时副本，适合主体清晰的单人参考图。</small></span>
+            </label>
+            <p id="imageBatchSelectionStatus" class="microcopy" role="status" aria-live="polite">尚未导入参考图。支持 PNG、JPEG、WebP，最多 200 张，并按相对文件名自然排序。</p>
+            <div class="batch-actions">
+              <button id="startImageBatchButton" class="primary" type="button">开始批量生成图片</button>
+              <button id="pauseImageBatchButton" class="secondary hidden" type="button">暂停批次</button>
+              <button id="stopImageBatchButton" class="secondary hidden" type="button">停止批次</button>
+              <span class="local-note">同一提示词与参数 · 本机逐张串行</span>
+            </div>
+            <div id="imageBatchProgressWrap" class="batch-progress hidden">
+              <label for="imageBatchProgress">图片批次总进度</label>
+              <progress id="imageBatchProgress" max="1" value="0"></progress>
+              <p id="imageBatchStatus" role="status" aria-live="polite"></p>
+            </div>
+            <ol id="imageBatchQueue" class="batch-queue hidden" aria-label="批量图片生成队列"></ol>
+            <p class="microcopy batch-note">批次开始时会冻结当前提示词、人物固定描述、创建/编辑模式、质量、种子和抠图设置。暂停会等当前图片完成后再停；停止会取消当前图片并保留已经完成的结果。刷新或关闭页面会丢失未提交队列。</p>
+          </div>
+        </details>
+        <details>
+          <summary>高级选项</summary>
+          <label class="field-label compact" for="imageSeed">随机种子 <em>留空则每次随机</em></label>
+          <input id="imageSeed" type="number" min="0" max="9223372036854775807" placeholder="自动随机">
+        </details>
+        <div class="action-row">
+          <button id="generateImageButton" class="primary" type="button">生成角色图片</button>
+          <button id="cancelImageButton" class="secondary hidden" type="button">停止生成</button>
+          <span id="imageEngineNote" class="local-note">本地图片引擎 · 正在核对版本</span>
+        </div>
+      </section>
+
+      <section class="panel result-panel">
+        <div class="result-header">
+          <div><p class="eyebrow">IMAGE RESULT</p><h2>角色图片结果</h2></div>
+          <button class="text-button open-results" type="button">打开统一输出文件夹</button>
+        </div>
+        <div id="emptyImageResult" class="empty-result"><div class="film-icon image-icon">◇</div><strong>生成的角色图片会显示在这里</strong><span>确认满意后把它设为固定母版，再生成不同角度。</span></div>
+        <div id="imageJobStatus" class="job-status hidden">
+          <div class="status-line"><strong id="imageStatusText">准备中</strong><span id="imageStatusMeta"></span></div>
+          <div class="progress-track"><div id="imageProgressBar"></div></div>
+          <p id="imageStatusDetail"></p>
+        </div>
+        <div id="imageResult" class="generated-image-result hidden">
+          <img id="generatedImage" alt="本地生成的角色图片">
+          <div class="image-meta"><span id="imageInfo"></span><div><button id="useAsMasterButton" class="text-button" type="button">设为固定人物母版</button><a id="imageDownloadLink" download>下载图片</a></div></div>
+        </div>
+        <div id="imageErrorBox" class="error-box hidden" role="alert"></div>
+      </section>
+    </section>
+
+    <footer>
+      <span>固定本地地址 127.0.0.1 · 本地模型自动错峰使用显存</span>
+      <button id="shutdownButton" class="text-button danger" type="button">关闭工作台</button>
+    </footer>
+  </main>
+  <script src="/static/app.js?v=20261101-entry-v1"></script>
+  <script src="/static/sequences.js?v=20261025-dual-reference-v1"></script>
+  <script src="/static/sequence_batches.js?v=20261024-sequence-merge-v1"></script>
+</body>
+</html>
